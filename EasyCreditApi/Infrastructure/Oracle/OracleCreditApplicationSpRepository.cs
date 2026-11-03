@@ -28,6 +28,43 @@ public sealed class OracleCreditApplicationSpRepository : ICreditApplicationSpRe
             commandType: CommandType.StoredProcedure);
     }
 
+    public async Task<CreditApplication?> GetByIdAsync(int applicationId)
+    {
+        await using var conn = _factory.Create();
+
+        const string sql = $@"
+            SELECT APPLICATION_ID    AS ApplicationId,
+                   CUSTOMER_ID       AS CustomerId,
+                   LOAN_AMOUNT       AS Amount,
+                   TENOR_MONTHS      AS TenorMonths,
+                   INTEREST_RATE     AS InterestRate,
+                   CREDIT_SCORE      AS CreditScore,
+                   STATUS            AS Status,
+                   APPLICATION_DATE  AS ApplicationDate,
+                   APPROVED_BY       AS ApprovedBy,
+                   APPROVED_DATE     AS ApprovedAt
+            FROM {Schema}.TRN_CREDIT_APPLICATION
+            WHERE APPLICATION_ID = :ApplicationId";
+
+        return await conn.QueryFirstOrDefaultAsync<CreditApplication>(sql, new { ApplicationId = applicationId });
+    }
+
+    public async Task<IEnumerable<ResInstallmentDto>> GetInstallmentsByApplicationIdAsync(int applicationId)
+    {
+        await using var conn = _factory.Create();
+
+        const string sql = $@"
+            SELECT INSTALLMENT_NO     AS InstallmentNo,
+                   DUE_DATE           AS DueDate,
+                   INSTALLMENT_AMOUNT AS InstallmentAmount,
+                   STATUS             AS Status
+            FROM {Schema}.TRN_CREDIT_INSTALLMENT
+            WHERE APPLICATION_ID = :ApplicationId
+            ORDER BY INSTALLMENT_NO";
+
+        return await conn.QueryAsync<ResInstallmentDto>(sql, new { ApplicationId = applicationId });
+    }
+
     public async Task<(string Status, string Message)> ApproveAsync(int applicationId, string approver)
     {
         await using var conn = _factory.Create();
@@ -88,7 +125,6 @@ public sealed class OracleCreditApplicationSpRepository : ICreditApplicationSpRe
 
         try
         {
-            // 1. Insert Header ke TRN_CREDIT_APPLICATION
             const string insertHeaderSql = $@"
                 INSERT INTO {Schema}.TRN_CREDIT_APPLICATION
                     (CUSTOMER_ID, LOAN_AMOUNT, TENOR_MONTHS, INTEREST_RATE, CREDIT_SCORE, STATUS, APPLICATION_DATE)
@@ -107,7 +143,6 @@ public sealed class OracleCreditApplicationSpRepository : ICreditApplicationSpRe
             await conn.ExecuteAsync(insertHeaderSql, headerParams, tx);
             var applicationId = headerParams.Get<int>("NewApplicationId");
 
-            // 2. Insert seluruh baris cicilan ke TRN_CREDIT_INSTALLMENT
             const string insertInstallmentSql = $@"
                 INSERT INTO {Schema}.TRN_CREDIT_INSTALLMENT
                     (APPLICATION_ID, INSTALLMENT_NO, DUE_DATE, INSTALLMENT_AMOUNT, STATUS)
@@ -126,13 +161,11 @@ public sealed class OracleCreditApplicationSpRepository : ICreditApplicationSpRe
                 await conn.ExecuteAsync(insertInstallmentSql, instParams, tx);
             }
 
-            // 3. Commit transaksi jika semua baris cicilan berhasil tersimpan
             tx.Commit();
             return applicationId;
         }
         catch
         {
-            // Rollback jika ada satu saja cicilan yang gagal, agar tidak ada data sampah di TRN
             tx.Rollback();
             throw;
         }

@@ -16,10 +16,32 @@ public class CreditApplicationsController : ControllerBase
     public CreditApplicationsController(ICreditApplicationSpService service) => _service = service;
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll(
+        [FromQuery] string? status,
+        [FromQuery] string? keyword,
+        [FromQuery] int page = 1,
+        [FromQuery] int size = 10)
     {
-        var items = await _service.GetAllAsync();
-        return Ok(ApiResponse<object>.Success(new { total = items.Count, items }));
+        var (items, total) = await _service.GetPagedApplicationsAsync(status, keyword, page, size);
+        var totalPages = size > 0 ? (int)Math.Ceiling((double)total / size) : 1;
+
+        return Ok(ApiResponse<object>.Success(new
+        {
+            page,
+            size,
+            total,
+            totalPages,
+            items
+        }, "Daftar pengajuan kredit berhasil diambil."));
+    }
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var detail = await _service.GetDetailAsync(id);
+        return Ok(ApiResponse<ResCreditApplicationDetailDto>.Success(
+            detail,
+            "Detail pengajuan kredit berhasil diambil."));
     }
 
     [HttpPost("preview-installment")]
