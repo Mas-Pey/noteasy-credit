@@ -96,6 +96,7 @@ window.EC = (function () {
 
         // Resolusi confirm modal.
         $('#confirmOk').on('click', function () {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('confirmModal')).hide();
             settleConfirm(true);
         });
 

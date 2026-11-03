@@ -83,6 +83,11 @@
                     <dd id="detailApprovedBy" class="col-sm-7 text-dim">
                         @(string.IsNullOrWhiteSpace(Model.ApprovedBy) ? "— (Menunggu persetujuan admin)" : Model.ApprovedBy)
                     </dd>
+
+                    <dt class="col-sm-5 text-dim">Waktu Persetujuan</dt>
+                    <dd id="detailApprovedAt" class="col-sm-7 text-dim">
+                        @(Model.ApprovedAt.HasValue ? Model.ApprovedAt.Value.ToString("dd MMMM yyyy HH:mm", culture) : "—")
+                    </dd>
                 </dl>
             </div>
         </div>
