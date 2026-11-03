@@ -86,6 +86,27 @@ public sealed class OracleCreditApplicationSpRepository : ICreditApplicationSpRe
         return (status, message);
     }
 
+    public async Task<(string Status, string Message)> RejectAsync(int applicationId, string approver)
+    {
+        await using var conn = _factory.Create();
+
+        var p = new OracleDynamicParameters();
+        p.Add("p_app_id", applicationId, OracleMappingType.Int32, ParameterDirection.Input);
+        p.Add("p_approver", approver, OracleMappingType.Varchar2, ParameterDirection.Input, 100);
+        p.Add("out_stat", dbType: OracleMappingType.Varchar2, direction: ParameterDirection.Output, size: 50);
+        p.Add("out_mess", dbType: OracleMappingType.Varchar2, direction: ParameterDirection.Output, size: 500);
+
+        await conn.ExecuteAsync(
+            $"{Schema}.sp_reject_application",
+            p,
+            commandType: CommandType.StoredProcedure);
+
+        var status = p.Get<string>("out_stat") ?? "ERROR";
+        var message = p.Get<string>("out_mess") ?? string.Empty;
+
+        return (status, message);
+    }
+
     public async Task<(IEnumerable<ResInstallmentDto> Installments, string Status, string Message)> CalculateInstallmentAsync(
         decimal loanAmount,
         int tenorMonths)

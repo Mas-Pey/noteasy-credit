@@ -63,14 +63,33 @@ public class CreditApplicationsController : ControllerBase
             "Pengajuan kredit berhasil dibuat dan disimpan."));
     }
 
-    [HttpPost("{id:int}/approve")]
+    [HttpPut("{id:int}/approve")]
     [Authorize(Roles = "ADMIN")]
-    public async Task<IActionResult> Approve(int id, [FromBody] ReqApproveApplicationDto dto)
+    public async Task<IActionResult> Approve(int id, [FromBody] ReqApproveApplicationDto? dto = null)
     {
-        var message = await _service.ApproveAsync(id, dto.Approver);
+        var approver = string.IsNullOrWhiteSpace(dto?.Approver)
+            ? (User.Identity?.Name ?? "Administrator")
+            : dto.Approver;
+
+        var message = await _service.ApproveAsync(id, approver);
 
         return Ok(ApiResponse<object>.Success(
-            new { applicationId = id, status = "SUCCESS" },
+            new { applicationId = id, status = "APPROVED" },
+            message));
+    }
+
+    [HttpPut("{id:int}/reject")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<IActionResult> Reject(int id, [FromBody] ReqApproveApplicationDto? dto = null)
+    {
+        var approver = string.IsNullOrWhiteSpace(dto?.Approver)
+            ? (User.Identity?.Name ?? "Administrator")
+            : dto.Approver;
+
+        var message = await _service.RejectAsync(id, approver);
+
+        return Ok(ApiResponse<object>.Success(
+            new { applicationId = id, status = "REJECTED" },
             message));
     }
 }

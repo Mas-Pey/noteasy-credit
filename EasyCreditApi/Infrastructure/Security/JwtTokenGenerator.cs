@@ -1,8 +1,8 @@
+using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using EasyCreditApi.Application.Interfaces;
-using EasyCreditApi.Domain.Entities;
 using Microsoft.IdentityModel.Tokens;
 
 namespace EasyCreditApi.Infrastructure.Security;
@@ -24,9 +24,10 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         var claims = new[]
         {
            new Claim(ClaimTypes.NameIdentifier, userID.ToString()),
-           new Claim(ClaimTypes.Name, name),
-           new Claim(ClaimTypes.Role, role),
-           new Claim("iat", DateTimeOffset.Now.ToUnixTimeSeconds().ToString())
+           new Claim("sub", userID.ToString()),
+           new Claim("name", name),
+           new Claim("role", role),
+           new Claim("iat", DateTimeOffset.Now.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
         };
 
         var credentials = new SigningCredentials(

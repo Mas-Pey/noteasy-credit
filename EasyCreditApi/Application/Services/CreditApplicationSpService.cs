@@ -142,7 +142,20 @@ public sealed class CreditApplicationSpService : ICreditApplicationSpService
         {
             "SUCCESS" => message,
             "NOT_FOUND" => throw new ExceptionMiddleware.NotFoundException(message),
-            "INVALID_STATUS" => throw new ExceptionMiddleware.ConflictException(message),
+            "INVALID_STATUS" => throw new ExceptionMiddleware.ValidationException(message),
+            _ => throw new InvalidOperationException(message)
+        };
+    }
+
+    public async Task<string> RejectAsync(int applicationId, string approver)
+    {
+        var (status, message) = await _repository.RejectAsync(applicationId, approver.Trim());
+
+        return status switch
+        {
+            "SUCCESS" => message,
+            "NOT_FOUND" => throw new ExceptionMiddleware.NotFoundException(message),
+            "INVALID_STATUS" => throw new ExceptionMiddleware.ValidationException(message),
             _ => throw new InvalidOperationException(message)
         };
     }

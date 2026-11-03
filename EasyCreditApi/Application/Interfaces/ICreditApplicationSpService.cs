@@ -13,6 +13,7 @@ public interface ICreditApplicationSpService
         int size);
     Task<ResCreditApplicationDetailDto> GetDetailAsync(int applicationId);
     Task<string> ApproveAsync(int applicationId, string approver);
+    Task<string> RejectAsync(int applicationId, string approver);
     Task<IReadOnlyList<ResInstallmentDto>> CalculateInstallmentAsync(ReqPreviewInstallmentDto dto);
     Task<ResCreateApplicationDto> CreateAsync(ReqCreateApplicationDto dto);
 }
