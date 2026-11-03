@@ -1,4 +1,4 @@
-﻿@model DashboardViewModel
+@model DashboardViewModel
 @{
     ViewData["Title"] = "Dashboard";
 
@@ -15,9 +15,7 @@
         <span class="eyebrow">Ringkasan operasional</span>
         <h2>Selamat datang, @ViewBag.UserName.</h2>
         <p>
-            Halaman ini dirender oleh <strong>Razor View Engine</strong> dan mengambil data
-            lewat <strong>ApiClient</strong> ke EasyCredit API. Interaksi tabel memakai jQuery AJAX
-            ke controller MVC frontend.
+            Kelola data nasabah, pantau simulasi pinjaman, dan verifikasi status permohonan kredit secara terpadu.
         </p>
     </div>
     <div class="hero-actions">
@@ -34,17 +32,17 @@
     <div class="stat-card">
         <span class="stat-label">Total customer</span>
         <strong class="stat-value">@Model.TotalCustomers</strong>
-        <span class="stat-foot">Tabel customer</span>
+        <span class="stat-foot">Nasabah terdaftar</span>
     </div>
     <div class="stat-card">
         <span class="stat-label">Total pengajuan</span>
         <strong class="stat-value">@Model.TotalApplications</strong>
-        <span class="stat-foot">Header aplikasi kredit</span>
+        <span class="stat-foot">Seluruh permohonan</span>
     </div>
     <div class="stat-card is-warning">
         <span class="stat-label">Menunggu approval</span>
         <strong class="stat-value">@Model.Pending</strong>
-        <span class="stat-foot">Status PENDING</span>
+        <span class="stat-foot">Perlu ditinjau</span>
     </div>
     <div class="stat-card is-success">
         <span class="stat-label">Disetujui</span>
@@ -57,7 +55,7 @@
     <div class="panel-head">
         <div>
             <h3>Pengajuan terbaru</h3>
-            <p>5 pengajuan terakhir dari stored procedure Day 6.</p>
+            <p>Daftar permohonan kredit yang baru masuk ke sistem.</p>
         </div>
         <a class="btn btn-light btn-sm" asp-controller="CreditApplications" asp-action="Index">
             Lihat semua
@@ -69,7 +67,7 @@
         <div class="empty-state">
             <div class="empty-icon">▤</div>
             <h4>Belum ada pengajuan</h4>
-            <p>Data pengajuan akan muncul di sini setelah ada record di Oracle.</p>
+            <p>Data pengajuan akan muncul di sini setelah permohonan kredit dibuat.</p>
         </div>
     }
     else

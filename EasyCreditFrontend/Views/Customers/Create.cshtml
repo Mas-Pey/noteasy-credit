@@ -13,7 +13,7 @@
             <span>Tambah</span>
         </div>
         <h2>Tambah customer</h2>
-        <p>Form ini memakai Razor tag helper dan Data Annotation validation.</p>
+        <p>Silakan isi informasi identitas dan kontak nasabah dengan lengkap dan benar.</p>
     </div>
 </div>
 
@@ -30,4 +30,13 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(function () {
+            $('form').on('submit', function () {
+                if ($(this).valid()) {
+                    $(this).find('button[type="submit"]').prop('disabled', true).text('Menyimpan…');
+                }
+            });
+        });
+    </script>
 }

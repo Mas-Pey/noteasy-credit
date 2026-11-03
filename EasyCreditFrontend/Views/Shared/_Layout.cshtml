@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Http
 @using EasyCreditFrontend.Services
 @{
     var controller = (string?)ViewContext.RouteData.Values["controller"] ?? string.Empty;
@@ -32,7 +32,6 @@
                     <span class="brand-mark">EC</span>
                     <span class="brand-text">
                         <strong>EasyCredit</strong>
-                        <small>MVC Frontend</small>
                     </span>
                 </a>
 
@@ -61,13 +60,6 @@
                         Tambah customer
                     </a>
                 </nav>
-
-                <div class="sidebar-foot">
-                    <div class="sidebar-note">
-                        <strong>EasyCreditFrontend</strong>
-                        <span>ASP.NET Core MVC · Razor · jQuery AJAX · ApiClient</span>
-                    </div>
-                </div>
             </aside>
         }
 
@@ -80,16 +72,11 @@
                     </button>
 
                     <div class="topbar-title">
-                        <span class="eyebrow">EasyCredit Console</span>
+                        <span class="eyebrow">Portal Aplikasi</span>
                         <h1>@ViewData["Title"]</h1>
                     </div>
 
                     <div class="topbar-actions">
-                        <span class="status-pill">
-                            <span class="status-dot"></span>
-                            API + Oracle
-                        </span>
-
                         <div class="user-chip">
                             <span class="avatar">@initial</span>
                             <span class="user-meta">
@@ -127,8 +114,7 @@
             @if (isLoggedIn)
             {
                 <footer class="app-footer">
-                    <span>&copy; @DateTime.Now.Year EasyCredit — Bootcamp .NET Batch 19</span>
-                    <span class="mono">MVC Frontend · ApiClient · JWT session</span>
+                    <span>&copy; @DateTime.Now.Year EasyCredit. Seluruh hak cipta dilindungi.</span>
                 </footer>
             }
         </div>

@@ -27,7 +27,7 @@
                 <div class="field mb-3">
                     <label asp-for="CustomerId" class="form-label"></label>
                     <select asp-for="CustomerId" asp-items="Model.CustomerOptions" class="form-select">
-                        <option value="">-- Pilih Nasabah (dari Master Postgres) --</option>
+                        <option value="">-- Pilih Nasabah --</option>
                     </select>
                     <span asp-validation-for="CustomerId" class="field-error"></span>
                 </div>
@@ -68,7 +68,7 @@
             <div class="panel-head">
                 <div>
                     <h3>Simulasi Jadwal Cicilan (Preview)</h3>
-                    <p>Skema angsuran per bulan yang dihitung oleh Stored Procedure Oracle.</p>
+                    <p>Skema angsuran per bulan berdasarkan perhitungan suku bunga pinjaman.</p>
                 </div>
                 <div>
                     <span id="installmentBadge" class="badge-status is-pending">Belum Dihitung</span>
@@ -127,12 +127,12 @@
                 const tenorMonths = parseInt($('#TenorMonths').val());
 
                 if (!loanAmount || loanAmount < 1000000 || loanAmount > 50000000) {
-                    alert('Nominal pinjaman harus antara Rp 1.000.000 s/d Rp 50.000.000');
+                    EC.toast('error', 'Nominal pinjaman harus antara Rp 1.000.000 s/d Rp 50.000.000', 'Validasi Gagal');
                     return;
                 }
 
                 if (!tenorMonths) {
-                    alert('Silakan pilih tenor pinjaman.');
+                    EC.toast('error', 'Silakan pilih tenor pinjaman.', 'Validasi Gagal');
                     return;
                 }
 
@@ -205,7 +205,7 @@
                         const errMsg = (xhr.responseJSON && xhr.responseJSON.message)
                             ? xhr.responseJSON.message
                             : 'Gagal melakukan perhitungan cicilan.';
-                        alert(errMsg);
+                        EC.toast('error', errMsg, 'Gagal');
                     },
                     complete: function () {
                         $btnCalculate.prop('disabled', false);
@@ -215,18 +215,25 @@
             });
 
             // Handler Tombol "Ajukan Kredit"
-            $btnSubmit.on('click', function () {
+            $btnSubmit.on('click', async function () {
                 const customerId = parseInt($('#CustomerId').val());
                 const loanAmount = parseFloat($('#LoanAmount').val());
                 const tenorMonths = parseInt($('#TenorMonths').val());
 
                 if (!customerId) {
-                    alert('Silakan pilih nasabah terlebih dahulu.');
+                    EC.toast('error', 'Silakan pilih nasabah terlebih dahulu.', 'Validasi Gagal');
                     $('#CustomerId').focus();
                     return;
                 }
 
-                if (!confirm(`Konfirmasi: Ajukan kredit sebesar Rp ${loanAmount.toLocaleString('id-ID')} dengan tenor ${tenorMonths} bulan?`)) {
+                const ok = await EC.confirm({
+                    title: 'Konfirmasi Pengajuan Kredit',
+                    message: `Ajukan kredit sebesar Rp ${loanAmount.toLocaleString('id-ID')} dengan tenor ${tenorMonths} bulan?`,
+                    confirmText: 'Ya, Ajukan',
+                    danger: false
+                });
+
+                if (!ok) {
                     return;
                 }
 
@@ -250,7 +257,7 @@
                     }),
                     success: function (response) {
                         if (response && response.status) {
-                            alert('Sukses! ' + (response.message || 'Pengajuan kredit berhasil diajukan dan disimpan.'));
+                            EC.toast('success', response.message || 'Pengajuan kredit berhasil diajukan dan disimpan.', 'Berhasil');
                             // Reset form & tabel
                             $('#formApplication')[0].reset();
                             $tableBody.empty();
@@ -267,7 +274,7 @@
                         const errMsg = (xhr.responseJSON && xhr.responseJSON.message)
                             ? xhr.responseJSON.message
                             : 'Gagal mengajukan kredit.';
-                        alert(errMsg);
+                        EC.toast('error', errMsg, 'Gagal');
                         $btnSubmit.prop('disabled', false);
                     },
                     complete: function () {

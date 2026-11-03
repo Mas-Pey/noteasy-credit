@@ -13,7 +13,7 @@
             <span>Edit #@Model.CustomerId</span>
         </div>
         <h2>Edit customer</h2>
-        <p>Perubahan dikirim ke action <span class="mono">Edit</span> lalu divalidasi ulang di server.</p>
+        <p>Perbarui informasi nasabah dan pastikan NIK serta kontak tetap valid.</p>
     </div>
 </div>
 
@@ -30,4 +30,13 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(function () {
+            $('form').on('submit', function () {
+                if ($(this).valid()) {
+                    $(this).find('button[type="submit"]').prop('disabled', true).text('Menyimpan…');
+                }
+            });
+        });
+    </script>
 }

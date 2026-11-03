@@ -114,14 +114,22 @@
             });
 
             // Quick Approve / Reject dari tabel list
-            $('#applicationList').on('click', '.js-quick-action', function () {
-                var action = $(this).data('action');
-                var appId = $(this).data('id');
+            $('#applicationList').on('click', '.js-quick-action', async function () {
+                var $btn = $(this);
+                var action = $btn.data('action');
+                var appId = $btn.data('id');
                 var label = action === 'Approve' ? 'menyetujui' : 'menolak';
 
-                if (!confirm('Apakah Anda yakin ingin ' + label + ' pengajuan kredit #' + appId + '?')) {
-                    return;
-                }
+                var ok = await EC.confirm({
+                    title: (action === 'Approve' ? 'Approve' : 'Reject') + ' Pengajuan?',
+                    message: 'Apakah Anda yakin ingin ' + label + ' pengajuan kredit #' + appId + '?',
+                    confirmText: 'Ya, ' + (action === 'Approve' ? 'Approve' : 'Reject'),
+                    danger: action !== 'Approve'
+                });
+
+                if (!ok) return;
+
+                $btn.prop('disabled', true);
 
                 var url = action === 'Approve'
                     ? '@Url.Action("Approve", "CreditApplications")/' + appId
@@ -136,15 +144,16 @@
                         'RequestVerificationToken': token
                     },
                     success: function (res) {
-                        alert(res.message || 'Pengajuan kredit berhasil diproses.');
+                        EC.toast('success', res.message || 'Pengajuan kredit berhasil diproses.', 'Berhasil');
                         // Muat ulang baris tabel agar data status terupdate
                         loadApplications(1);
                     },
                     error: function (xhr) {
+                        $btn.prop('disabled', false);
                         var msg = (xhr.responseJSON && xhr.responseJSON.message)
                             ? xhr.responseJSON.message
                             : 'Gagal memproses pengajuan.';
-                        alert(msg);
+                        EC.toast('error', msg, 'Gagal');
                         // Jika konflik status (400/409), reload agar sinkron
                         loadApplications(1);
                     }

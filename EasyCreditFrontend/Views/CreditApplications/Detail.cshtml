@@ -24,7 +24,7 @@
             <h2 class="mb-0">Pengajuan Kredit #@Model.ApplicationId</h2>
             <span class="badge-status @statusClass">@Model.Status</span>
         </div>
-        <p class="mt-1">Rincian data pengajuan transaksi (Oracle), identitas nasabah (PostgreSQL), dan jadwal cicilan.</p>
+        <p class="mt-1">Rincian data pengajuan transaksi, identitas nasabah, dan jadwal cicilan.</p>
     </div>
     <div class="d-flex gap-2 align-items-center">
         @if (ViewBag.IsAdmin == true && (Model.Status == "PENDING" || Model.Status == "SUBMITTED"))
@@ -43,13 +43,13 @@
 </div>
 
 <div class="row g-4 mb-4">
-    <!-- Kolom Kiri: Informasi Pengajuan (Oracle) -->
+    <!-- Kolom Kiri: Informasi Pengajuan -->
     <div class="col-lg-6">
         <div class="panel h-100">
             <div class="panel-head">
                 <div>
                     <h3>Data Transaksi Kredit</h3>
-                    <p>Tersimpan di tabel Oracle (TRN_CREDIT_APPLICATION)</p>
+                    <p>Informasi permohonan pinjaman dan status persetujuan</p>
                 </div>
             </div>
             <div class="p-4">
@@ -93,13 +93,13 @@
         </div>
     </div>
 
-    <!-- Kolom Kanan: Profil Nasabah (PostgreSQL) -->
+    <!-- Kolom Kanan: Profil Nasabah -->
     <div class="col-lg-6">
         <div class="panel h-100">
             <div class="panel-head">
                 <div>
                     <h3>Data Nasabah (Debitur)</h3>
-                    <p>Lookup terpisah dari tabel PostgreSQL (mst_customer)</p>
+                    <p>Informasi identitas dan kontak pemohon kredit</p>
                 </div>
                 @if (Model.Customer != null)
                 {
@@ -113,7 +113,7 @@
                 @if (Model.Customer == null)
                 {
                     <div class="text-center py-4 text-dim">
-                        <p>Data profil customer tidak ditemukan di PostgreSQL.</p>
+                        <p>Data profil nasabah tidak ditemukan atau telah dihapus.</p>
                     </div>
                 }
                 else
@@ -143,12 +143,12 @@
     </div>
 </div>
 
-<!-- Panel Bawah: Tabel Jadwal Cicilan Lengkap (Oracle) -->
+<!-- Panel Bawah: Tabel Jadwal Cicilan Lengkap -->
 <div class="panel">
     <div class="panel-head">
         <div>
             <h3>Jadwal & Rincian Angsuran Cicilan</h3>
-            <p>Daftar rincian dari tabel Oracle (TRN_CREDIT_INSTALLMENT)</p>
+            <p>Jadwal dan rincian nominal pembayaran per periode</p>
         </div>
         <span class="status-pill">
             Total @Model.Installments.Count Angsuran
@@ -216,14 +216,19 @@
         $(function () {
             var token = $('input[name="__RequestVerificationToken"]').val();
 
-            $('.js-detail-action').on('click', function () {
+            $('.js-detail-action').on('click', async function () {
                 var action = $(this).data('action'); // "Approve" atau "Reject"
                 var appId = $(this).data('id');
                 var label = action === 'Approve' ? 'menyetujui' : 'menolak';
 
-                if (!confirm('Apakah Anda yakin ingin ' + label + ' pengajuan kredit #' + appId + '?')) {
-                    return;
-                }
+                var ok = await EC.confirm({
+                    title: (action === 'Approve' ? 'Approve' : 'Reject') + ' Pengajuan?',
+                    message: 'Apakah Anda yakin ingin ' + label + ' pengajuan kredit #' + appId + '?',
+                    confirmText: 'Ya, ' + (action === 'Approve' ? 'Approve' : 'Reject'),
+                    danger: action !== 'Approve'
+                });
+
+                if (!ok) return;
 
                 var url = action === 'Approve'
                     ? '@Url.Action("Approve", "CreditApplications")/' + appId
@@ -239,7 +244,7 @@
                         'RequestVerificationToken': token
                     },
                     success: function (res) {
-                        alert(res.message || 'Pengajuan kredit berhasil diproses.');
+                        EC.toast('success', res.message || 'Pengajuan kredit berhasil diproses.', 'Berhasil');
                         var newStatus = action === 'Approve' ? 'APPROVED' : 'REJECTED';
                         var badgeClass = action === 'Approve' ? 'is-approved' : 'is-rejected';
 
@@ -253,12 +258,11 @@
                         $('#approvalActions').fadeOut();
                     },
                     error: function (xhr) {
+                        $btn.prop('disabled', false);
                         var msg = (xhr.responseJSON && xhr.responseJSON.message)
                             ? xhr.responseJSON.message
                             : 'Gagal memproses pengajuan kredit.';
-                        alert(msg);
-                        // Jika konflik status (400 / 409), reload halaman agar data sinkron
-                        window.location.reload();
+                        EC.toast('error', msg, 'Gagal');
                     }
                 });
             });
