@@ -87,7 +87,7 @@ public class HomeController : BaseController
             Amount = application.Amount,
             TenorMonths = application.TenorMonths,
             Status = application.Status ?? "UNKNOWN",
-            ApprovedBy = application.AprrovedBy,
+            ApprovedBy = application.ApprovedBy,
             ApprovedAt = application.ApprovedAt
         };
     }

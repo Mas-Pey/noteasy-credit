@@ -1,0 +1,98 @@
+@model ApplicationIndexViewModel
+
+@if (!Model.Items.Any())
+{
+    <div class="panel">
+        <div class="empty-state">
+            <div class="empty-icon">▤</div>
+            <h4>@(string.IsNullOrWhiteSpace(Model.Keyword) && string.IsNullOrWhiteSpace(Model.Status) ? "Belum ada pengajuan kredit" : "Pengajuan kredit tidak ditemukan")</h4>
+            <p>
+                @(string.IsNullOrWhiteSpace(Model.Keyword) && string.IsNullOrWhiteSpace(Model.Status)
+                    ? "Buat pengajuan kredit pertama melalui form pengajuan."
+                    : "Tidak ada data pengajuan yang cocok dengan kriteria pencarian / filter.")
+            </p>
+            <a class="btn btn-accent" asp-action="Create">+ Buat pengajuan baru</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="panel">
+        <div class="table-wrap">
+            <table class="data-table" id="applicationTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nasabah</th>
+                        <th>Nominal Pinjaman</th>
+                        <th>Tenor</th>
+                        <th>Status</th>
+                        <th>Approver</th>
+                        <th class="text-end">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        var statusClass = item.Status?.ToUpperInvariant() switch
+                        {
+                            "APPROVED" => "is-approved",
+                            "REJECTED" => "is-rejected",
+                            _ => "is-pending"
+                        };
+
+                        <tr>
+                            <td class="mono text-dim">#@item.ApplicationId</td>
+                            <td>
+                                <div class="cell-strong">@item.CustomerName</div>
+                                <small class="text-dim mono">Cust ID: #@item.CustomerId</small>
+                            </td>
+                            <td class="mono cell-strong">
+                                @item.Amount.ToString("C0", new System.Globalization.CultureInfo("id-ID"))
+                            </td>
+                            <td>@item.TenorMonths Bulan</td>
+                            <td>
+                                <span class="badge-status @statusClass">@item.Status</span>
+                            </td>
+                            <td class="text-dim">
+                                @(string.IsNullOrWhiteSpace(item.ApprovedBy) ? "—" : item.ApprovedBy)
+                            </td>
+                            <td>
+                                <div class="row-actions justify-content-end">
+                                    <a class="btn btn-light btn-sm" asp-action="Detail" asp-route-id="@item.ApplicationId">
+                                        Detail
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="panel-foot">
+            <span class="text-dim">
+                Menampilkan @Model.Items.Count dari @Model.Total pengajuan
+            </span>
+
+            <div class="pager">
+                <button type="button"
+                        class="btn btn-light btn-sm js-page"
+                        data-page="@(Model.Page - 1)"
+                        disabled="@(!Model.HasPreviousPage)">
+                    Sebelumnya
+                </button>
+
+                <span class="pager-info mono">@Model.Page / @Math.Max(1, Model.TotalPages)</span>
+
+                <button type="button"
+                        class="btn btn-light btn-sm js-page"
+                        data-page="@(Model.Page + 1)"
+                        disabled="@(!Model.HasNextPage)">
+                    Berikutnya
+                </button>
+            </div>
+        </div>
+    </div>
+}
+

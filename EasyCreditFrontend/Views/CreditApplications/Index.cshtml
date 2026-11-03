@@ -1,0 +1,118 @@
+@model ApplicationIndexViewModel
+@{
+    ViewData["Title"] = "Daftar Pengajuan Kredit";
+    var hasFilter = !string.IsNullOrWhiteSpace(Model.Keyword) || !string.IsNullOrWhiteSpace(Model.Status);
+}
+
+<div class="page-head">
+    <div>
+        <div class="crumbs">
+            <a asp-controller="Home" asp-action="Index">Dashboard</a>
+            <span>/</span>
+            <span>Pengajuan</span>
+        </div>
+        <h2>Daftar Pengajuan Kredit</h2>
+        <p>Kelola dan pantau seluruh transaksi pengajuan kredit nasabah secara real-time.</p>
+    </div>
+    <a class="btn btn-accent" asp-action="Create">+ Buat pengajuan baru</a>
+</div>
+
+<form id="applicationSearchForm" asp-action="Index" method="get" class="toolbar">
+    <div class="search-field">
+        <span class="search-icon">⌕</span>
+        <input id="appKeyword"
+               name="keyword"
+               value="@Model.Keyword"
+               class="form-control"
+               placeholder="Cari nama nasabah, NIK, atau ID…"
+               autocomplete="off" />
+    </div>
+
+    <select id="appStatus" name="status" class="form-select toolbar-select" aria-label="Filter status">
+        <option value="">Semua Status</option>
+        <option value="PENDING" selected="@(string.Equals(Model.Status, "PENDING", StringComparison.OrdinalIgnoreCase))">PENDING</option>
+        <option value="APPROVED" selected="@(string.Equals(Model.Status, "APPROVED", StringComparison.OrdinalIgnoreCase))">APPROVED</option>
+        <option value="REJECTED" selected="@(string.Equals(Model.Status, "REJECTED", StringComparison.OrdinalIgnoreCase))">REJECTED</option>
+    </select>
+
+    <select id="appSize" name="size" class="form-select toolbar-select" aria-label="Jumlah baris">
+        @foreach (var size in new[] { 5, 10, 25, 50 })
+        {
+            <option value="@size" selected="@(Model.Size == size)">@size baris</option>
+        }
+    </select>
+
+    @if (hasFilter)
+    {
+        <a class="btn btn-light" asp-action="Index">Reset</a>
+    }
+</form>
+
+<div id="applicationList">
+    <partial name="_ApplicationList" model="Model" />
+</div>
+
+@section Scripts {
+    <script>
+        $(function () {
+            var searchUrl = '@Url.Action("Rows", "CreditApplications")';
+            var defaultPageSize = @Model.Size;
+            var timer = null;
+
+            function currentPageSize() {
+                return $('#appSize').val() || defaultPageSize;
+            }
+
+            function loadApplications(page) {
+                $.ajax({
+                    url: searchUrl,
+                    type: 'GET',
+                    data: {
+                        keyword: $('#appKeyword').val(),
+                        status: $('#appStatus').val(),
+                        page: page,
+                        size: currentPageSize()
+                    },
+                    success: function (html) {
+                        $('#applicationList').html(html);
+                    },
+                    error: function () {
+                        alert('Gagal memuat daftar pengajuan kredit.');
+                    }
+                });
+            }
+
+            // Realtime search saat mengetik
+            $('#appKeyword').on('input', function () {
+                clearTimeout(timer);
+                timer = setTimeout(function () {
+                    loadApplications(1);
+                }, 350);
+            });
+
+            // Filter status berubah
+            $('#appStatus').on('change', function () {
+                loadApplications(1);
+            });
+
+            // Pilihan jumlah baris berubah
+            $('#appSize').on('change', function () {
+                loadApplications(1);
+            });
+
+            $('#applicationSearchForm').on('submit', function (event) {
+                event.preventDefault();
+                loadApplications(1);
+            });
+
+            // Pagination click via AJAX
+            $('#applicationList').on('click', '.js-page', function () {
+                var page = $(this).data('page');
+                if (page) {
+                    loadApplications(page);
+                }
+            });
+        });
+    </script>
+}
+

@@ -1,0 +1,195 @@
+@model EasyCreditFrontend.Models.Dtos.CreditApplicationDetailDto
+@{
+    ViewData["Title"] = $"Detail Pengajuan #{Model.ApplicationId}";
+    var statusClass = Model.Status?.ToUpperInvariant() switch
+    {
+        "APPROVED" => "is-approved",
+        "REJECTED" => "is-rejected",
+        _ => "is-pending"
+    };
+
+    var culture = new System.Globalization.CultureInfo("id-ID");
+}
+
+<div class="page-head">
+    <div>
+        <div class="crumbs">
+            <a asp-controller="Home" asp-action="Index">Dashboard</a>
+            <span>/</span>
+            <a asp-action="Index">Pengajuan</a>
+            <span>/</span>
+            <span>Detail #@Model.ApplicationId</span>
+        </div>
+        <div class="d-flex align-items-center gap-3 mt-1">
+            <h2 class="mb-0">Pengajuan Kredit #@Model.ApplicationId</h2>
+            <span class="badge-status @statusClass">@Model.Status</span>
+        </div>
+        <p class="mt-1">Rincian data pengajuan transaksi (Oracle), identitas nasabah (PostgreSQL), dan jadwal cicilan.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-light" asp-action="Index">← Kembali ke Daftar</a>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Kolom Kiri: Informasi Pengajuan (Oracle) -->
+    <div class="col-lg-6">
+        <div class="panel h-100">
+            <div class="panel-head">
+                <div>
+                    <h3>Data Transaksi Kredit</h3>
+                    <p>Tersimpan di tabel Oracle (TRN_CREDIT_APPLICATION)</p>
+                </div>
+            </div>
+            <div class="p-4">
+                <dl class="row mb-0 gy-3" style="font-size: 13.5px;">
+                    <dt class="col-sm-5 text-dim">Nominal Pinjaman</dt>
+                    <dd class="col-sm-7 mono cell-strong fs-6">
+                        @Model.Amount.ToString("C0", culture)
+                    </dd>
+
+                    <dt class="col-sm-5 text-dim">Jangka Waktu (Tenor)</dt>
+                    <dd class="col-sm-7 cell-strong">
+                        @Model.TenorMonths Bulan (@Model.Installments.Count kali cicilan)
+                    </dd>
+
+                    <dt class="col-sm-5 text-dim">Suku Bunga</dt>
+                    <dd class="col-sm-7">
+                        @(Model.InterestRate * 100)% flat / bulan
+                    </dd>
+
+                    <dt class="col-sm-5 text-dim">Skor Kredit Internal</dt>
+                    <dd class="col-sm-7 mono">
+                        @Model.CreditScore
+                    </dd>
+
+                    <dt class="col-sm-5 text-dim">Status Pengajuan</dt>
+                    <dd class="col-sm-7">
+                        <span class="badge-status @statusClass">@Model.Status</span>
+                    </dd>
+
+                    <dt class="col-sm-5 text-dim">Disetujui Oleh</dt>
+                    <dd class="col-sm-7 text-dim">
+                        @(string.IsNullOrWhiteSpace(Model.ApprovedBy) ? "— (Menunggu persetujuan admin)" : Model.ApprovedBy)
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kolom Kanan: Profil Nasabah (PostgreSQL) -->
+    <div class="col-lg-6">
+        <div class="panel h-100">
+            <div class="panel-head">
+                <div>
+                    <h3>Data Nasabah (Debitur)</h3>
+                    <p>Lookup terpisah dari tabel PostgreSQL (mst_customer)</p>
+                </div>
+                @if (Model.Customer != null)
+                {
+                    <span class="status-pill">
+                        <span class="status-dot"></span>
+                        Terverifikasi
+                    </span>
+                }
+            </div>
+            <div class="p-4">
+                @if (Model.Customer == null)
+                {
+                    <div class="text-center py-4 text-dim">
+                        <p>Data profil customer tidak ditemukan di PostgreSQL.</p>
+                    </div>
+                }
+                else
+                {
+                    <dl class="row mb-0 gy-3" style="font-size: 13.5px;">
+                        <dt class="col-sm-4 text-dim">ID Nasabah</dt>
+                        <dd class="col-sm-8 mono cell-strong">#@Model.Customer.CustomerId</dd>
+
+                        <dt class="col-sm-4 text-dim">Nama Lengkap</dt>
+                        <dd class="col-sm-8 cell-strong">@Model.Customer.Name</dd>
+
+                        <dt class="col-sm-4 text-dim">Nomor KTP (NIK)</dt>
+                        <dd class="col-sm-8 mono">@Model.Customer.Nik</dd>
+
+                        <dt class="col-sm-4 text-dim">Nomor Telepon</dt>
+                        <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Customer.Phone) ? "—" : Model.Customer.Phone)</dd>
+
+                        <dt class="col-sm-4 text-dim">Alamat Email</dt>
+                        <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Customer.Email) ? "—" : Model.Customer.Email)</dd>
+
+                        <dt class="col-sm-4 text-dim">Alamat Lengkap</dt>
+                        <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Customer.Address) ? "—" : Model.Customer.Address)</dd>
+                    </dl>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Panel Bawah: Tabel Jadwal Cicilan Lengkap (Oracle) -->
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h3>Jadwal & Rincian Angsuran Cicilan</h3>
+            <p>Daftar rincian dari tabel Oracle (TRN_CREDIT_INSTALLMENT)</p>
+        </div>
+        <span class="status-pill">
+            Total @Model.Installments.Count Angsuran
+        </span>
+    </div>
+
+    @if (!Model.Installments.Any())
+    {
+        <div class="p-5 text-center text-dim">
+            <p class="mb-0">Belum ada baris cicilan yang tercatat untuk pengajuan ini.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 15%">Angsuran Ke-</th>
+                        <th style="width: 35%">Tanggal Jatuh Tempo</th>
+                        <th style="width: 30%">Jumlah Angsuran</th>
+                        <th style="width: 20%">Status Pembayaran</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var inst in Model.Installments)
+                    {
+                        var instClass = string.Equals(inst.Status, "PAID", StringComparison.OrdinalIgnoreCase)
+                            ? "is-approved"
+                            : "is-pending";
+
+                        <tr>
+                            <td class="cell-strong mono">Cicilan #@inst.InstallmentNo</td>
+                            <td>
+                                @inst.DueDate.ToString("dd MMMM yyyy", culture)
+                            </td>
+                            <td class="mono cell-strong">
+                                @inst.InstallmentAmount.ToString("C0", culture)
+                            </td>
+                            <td>
+                                <span class="badge-status @instClass">@inst.Status</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="panel-foot">
+            <span class="text-dim">
+                Bunga: <strong>@(Model.InterestRate * 100)% flat / bulan</strong>
+            </span>
+            <span class="cell-strong">
+                Total Kewajiban Pembayaran:
+                @Model.Installments.Sum(i => i.InstallmentAmount).ToString("C0", culture)
+            </span>
+        </div>
+    }
+</div>
+

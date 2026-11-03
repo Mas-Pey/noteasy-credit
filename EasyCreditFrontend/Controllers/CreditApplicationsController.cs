@@ -9,6 +9,7 @@ namespace EasyCreditFrontend.Controllers;
 
 public class CreditApplicationsController : BaseController
 {
+    private const int DefaultPageSize = 10;
     private readonly ApiClient _apiClient;
 
     public CreditApplicationsController(ApiClient apiClient)
@@ -17,9 +18,39 @@ public class CreditApplicationsController : BaseController
     }
 
     [HttpGet]
-    public IActionResult Index()
+    public async Task<IActionResult> Index(
+        string? status,
+        string? keyword,
+        int page = 1,
+        int size = DefaultPageSize)
     {
-        return RedirectToAction(nameof(Create));
+        var model = await BuildIndexAsync(status, keyword, page, size);
+        return View(model);
+    }
+
+    // Endpoint khusus filter / pagination
+    [HttpGet]
+    public async Task<IActionResult> Rows(
+        string? status,
+        string? keyword,
+        int page = 1,
+        int size = DefaultPageSize)
+    {
+        var model = await BuildIndexAsync(status, keyword, page, size);
+        return PartialView("_ApplicationList", model);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Detail(int id)
+    {
+        var response = await _apiClient.GetAsync<CreditApplicationDetailDto>($"/api/credit-applications/{id}");
+        if (response == null || !response.Status || response.Data == null)
+        {
+            TempData["ErrorMessage"] = response?.Message ?? "Pengajuan kredit tidak ditemukan.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        return View(response.Data);
     }
 
     [HttpGet]
@@ -30,7 +61,7 @@ public class CreditApplicationsController : BaseController
         return View(model);
     }
 
-    // Endpoint Hitung Simulasi
+    // Endpoint Hitung Simulasi (AJAX)
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Preview([FromBody] ReqPreviewInstallmentModel req)
@@ -63,7 +94,7 @@ public class CreditApplicationsController : BaseController
         return Json(new { status = true, data = apiResponse.Data });
     }
 
-    // Endpoint Submit Loan
+    // Endpoint Submit Pengajuan Kredit Final (AJAX)
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create([FromBody] ReqSubmitApplicationModel req)
@@ -107,6 +138,39 @@ public class CreditApplicationsController : BaseController
         });
     }
 
+    private async Task<ApplicationIndexViewModel> BuildIndexAsync(string? status, string? keyword, int page, int size)
+    {
+        var model = new ApplicationIndexViewModel
+        {
+            Status = status,
+            Keyword = keyword,
+            Page = Math.Max(1, page),
+            Size = size <= 0 ? DefaultPageSize : size
+        };
+
+        var url = $"/api/credit-applications?status={Uri.EscapeDataString(status ?? string.Empty)}&keyword={Uri.EscapeDataString(keyword ?? string.Empty)}&page={model.Page}&size={model.Size}";
+        var response = await _apiClient.GetAsync<ApplicationListApiData>(url);
+
+        if (response?.Status == true && response.Data != null)
+        {
+            model.Total = response.Data.Total;
+            model.TotalPages = response.Data.TotalPages;
+            model.Items = (response.Data.Items ?? []).Select(dto => new ApplicationRowViewModel
+            {
+                ApplicationId = dto.ApplicationId,
+                CustomerId = dto.CustomerId,
+                CustomerName = dto.CustomerName,
+                Amount = dto.Amount,
+                TenorMonths = dto.TenorMonths,
+                Status = dto.Status ?? "PENDING",
+                ApprovedBy = dto.ApprovedBy,
+                ApprovedAt = dto.ApprovedAt
+            }).ToList();
+        }
+
+        return model;
+    }
+
     private async Task PopulateCustomerOptionsAsync(CreateApplicationViewModel model)
     {
         try
@@ -140,6 +204,15 @@ public class CreditApplicationsController : BaseController
         public int CustomerId { get; set; }
         public decimal LoanAmount { get; set; }
         public int TenorMonths { get; set; }
+    }
+
+    private class ApplicationListApiData
+    {
+        public int Page { get; set; }
+        public int Size { get; set; }
+        public int Total { get; set; }
+        public int TotalPages { get; set; }
+        public List<ApplicationListItemDto>? Items { get; set; }
     }
 
     private class CustomerListApiData
