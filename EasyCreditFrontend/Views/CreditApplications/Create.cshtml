@@ -54,6 +54,7 @@
                         Hitung Simulasi
                     </button>
                     <button type="button" id="btnSubmit" class="btn btn-accent w-100" disabled>
+                        <span class="spinner-border spinner-border-sm d-none" id="submitSpinner"></span>
                         Ajukan Kredit
                     </button>
                 </div>
@@ -94,7 +95,7 @@
                         </tr>
                     </thead>
                     <tbody id="installmentTableBody">
-                        <!-- Baris tabel di-generate via JavaScript jQuery AJAX -->
+                        <!-- Baris tabel via AJAX -->
                     </tbody>
                 </table>
             </div>
@@ -193,7 +194,6 @@
                             $tableContainer.removeClass('d-none');
                             $summaryFoot.removeClass('d-none');
 
-                            // Update badge gaya tema
                             $badge.removeClass('is-pending is-rejected')
                                   .addClass('is-approved')
                                   .text(tenorMonths + ' Bulan (' + response.data.length + 'x Cicilan)');
@@ -210,6 +210,68 @@
                     complete: function () {
                         $btnCalculate.prop('disabled', false);
                         $calcSpinner.addClass('d-none');
+                    }
+                });
+            });
+
+            // Handler Tombol "Ajukan Kredit"
+            $btnSubmit.on('click', function () {
+                const customerId = parseInt($('#CustomerId').val());
+                const loanAmount = parseFloat($('#LoanAmount').val());
+                const tenorMonths = parseInt($('#TenorMonths').val());
+
+                if (!customerId) {
+                    alert('Silakan pilih nasabah terlebih dahulu.');
+                    $('#CustomerId').focus();
+                    return;
+                }
+
+                if (!confirm(`Konfirmasi: Ajukan kredit sebesar Rp ${loanAmount.toLocaleString('id-ID')} dengan tenor ${tenorMonths} bulan?`)) {
+                    return;
+                }
+
+                const $submitSpinner = $('#submitSpinner');
+                $btnSubmit.prop('disabled', true);
+                $submitSpinner.removeClass('d-none');
+
+                const token = $('input[name="__RequestVerificationToken"]').val();
+
+                $.ajax({
+                    url: '@Url.Action("Create", "CreditApplications")',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    headers: {
+                        'RequestVerificationToken': token
+                    },
+                    data: JSON.stringify({
+                        customerId: customerId,
+                        loanAmount: loanAmount,
+                        tenorMonths: tenorMonths
+                    }),
+                    success: function (response) {
+                        if (response && response.status) {
+                            alert('Sukses! ' + (response.message || 'Pengajuan kredit berhasil diajukan dan disimpan.'));
+                            // Reset form & tabel
+                            $('#formApplication')[0].reset();
+                            $tableBody.empty();
+                            $tableContainer.addClass('d-none');
+                            $summaryFoot.addClass('d-none');
+                            $placeholder.removeClass('d-none');
+                            $badge.removeClass('is-approved is-rejected')
+                                  .addClass('is-pending')
+                                  .text('Belum Dihitung');
+                            $btnSubmit.prop('disabled', true);
+                        }
+                    },
+                    error: function (xhr) {
+                        const errMsg = (xhr.responseJSON && xhr.responseJSON.message)
+                            ? xhr.responseJSON.message
+                            : 'Gagal mengajukan kredit.';
+                        alert(errMsg);
+                        $btnSubmit.prop('disabled', false);
+                    },
+                    complete: function () {
+                        $submitSpinner.addClass('d-none');
                     }
                 });
             });
