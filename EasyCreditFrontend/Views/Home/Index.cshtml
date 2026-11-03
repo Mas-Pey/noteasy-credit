@@ -1,0 +1,105 @@
+﻿@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+
+    string StatusClass(string status) => status switch
+    {
+        "APPROVED" => "badge-status is-approved",
+        "REJECTED" => "badge-status is-rejected",
+        _ => "badge-status is-pending"
+    };
+}
+
+<section class="hero-card">
+    <div>
+        <span class="eyebrow">Ringkasan operasional</span>
+        <h2>Selamat datang, @ViewBag.UserName.</h2>
+        <p>
+            Halaman ini dirender oleh <strong>Razor View Engine</strong> dan mengambil data
+            lewat <strong>ApiClient</strong> ke EasyCredit API. Interaksi tabel memakai jQuery AJAX
+            ke controller MVC frontend.
+        </p>
+    </div>
+    <div class="hero-actions">
+        <a class="btn btn-accent" asp-controller="CreditApplications" asp-action="Index">
+            Lihat pengajuan
+        </a>
+        <a class="btn btn-light" asp-controller="Customers" asp-action="Index">
+            Kelola customer
+        </a>
+    </div>
+</section>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <span class="stat-label">Total customer</span>
+        <strong class="stat-value">@Model.TotalCustomers</strong>
+        <span class="stat-foot">Tabel customer</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Total pengajuan</span>
+        <strong class="stat-value">@Model.TotalApplications</strong>
+        <span class="stat-foot">Header aplikasi kredit</span>
+    </div>
+    <div class="stat-card is-warning">
+        <span class="stat-label">Menunggu approval</span>
+        <strong class="stat-value">@Model.Pending</strong>
+        <span class="stat-foot">Status SUBMITTED</span>
+    </div>
+    <div class="stat-card is-success">
+        <span class="stat-label">Disetujui</span>
+        <strong class="stat-value">@Model.Approved</strong>
+        <span class="stat-foot">@Model.Rejected ditolak</span>
+    </div>
+</div>
+
+<section class="panel">
+    <div class="panel-head">
+        <div>
+            <h3>Pengajuan terbaru</h3>
+            <p>5 pengajuan terakhir dari stored procedure Day 6.</p>
+        </div>
+        <a class="btn btn-light btn-sm" asp-controller="CreditApplications" asp-action="Index">
+            Lihat semua
+        </a>
+    </div>
+
+    @if (!Model.Recent.Any())
+    {
+        <div class="empty-state">
+            <div class="empty-icon">▤</div>
+            <h4>Belum ada pengajuan</h4>
+            <p>Data pengajuan akan muncul di sini setelah ada record di Oracle.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Customer</th>
+                        <th class="text-end">Pinjaman</th>
+                        <th>Tenor</th>
+                        <th>Status</th>
+                        <th>Approver</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Recent)
+                    {
+                        <tr>
+                            <td class="mono text-dim">#@item.ApplicationId</td>
+                            <td class="cell-strong">@item.CustomerName</td>
+                            <td class="text-end mono">Rp @item.Amount.ToString("N0")</td>
+                            <td>@item.TenorMonths bulan</td>
+                            <td><span class="@StatusClass(item.Status)">@item.Status</span></td>
+                            <td class="text-dim">@(item.ApprovedBy ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

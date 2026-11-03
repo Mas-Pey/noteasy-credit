@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="EasyCreditApi/EasyCreditApi.csproj" />
+  <Project Path="EasyCreditFrontend/EasyCreditFrontend.csproj" />
+</Solution>

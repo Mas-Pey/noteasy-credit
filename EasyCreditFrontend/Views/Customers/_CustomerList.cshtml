@@ -1,0 +1,83 @@
+@model CustomerIndexViewModel
+
+@if (!Model.Items.Any())
+{
+    <div class="panel">
+        <div class="empty-state">
+            <div class="empty-icon">◉</div>
+            <h4>@(string.IsNullOrWhiteSpace(Model.Keyword) ? "Belum ada customer" : "Customer tidak ditemukan")</h4>
+            <p>
+                @(string.IsNullOrWhiteSpace(Model.Keyword)
+                    ? "Tambahkan customer pertama untuk mulai membuat pengajuan."
+                    : $"Tidak ada data yang cocok dengan pencarian \"{Model.Keyword}\".")
+            </p>
+            <a class="btn btn-accent" asp-action="Create">+ Tambah customer</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="panel">
+        <div class="table-wrap">
+            <table class="data-table" id="customerTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nama</th>
+                        <th>NIK</th>
+                        <th>Telepon</th>
+                        <th>Email</th>
+                        <th class="text-end">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td class="mono text-dim">#@item.CustomerId</td>
+                            <td class="cell-strong">@item.Name</td>
+                            <td class="mono">@item.Nik</td>
+                            <td class="text-dim">@(string.IsNullOrWhiteSpace(item.Phone) ? "—" : item.Phone)</td>
+                            <td class="text-dim">@(string.IsNullOrWhiteSpace(item.Email) ? "—" : item.Email)</td>
+                            <td>
+                                <div class="row-actions">
+                                    <a class="btn btn-light btn-sm" asp-action="Edit" asp-route-id="@item.CustomerId">Edit</a>
+                                    <button type="button"
+                                            class="btn btn-danger-soft btn-sm js-delete"
+                                            data-id="@item.CustomerId"
+                                            data-name="@item.Name">
+                                        Hapus
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="panel-foot">
+            <span class="text-dim">
+                Menampilkan @Model.Items.Count dari @Model.Total customer
+            </span>
+
+            <div class="pager">
+                <button type="button"
+                        class="btn btn-light btn-sm js-page"
+                        data-page="@(Model.Page - 1)"
+                        disabled="@(!Model.HasPreviousPage)">
+                    Sebelumnya
+                </button>
+
+                <span class="pager-info mono">@Model.Page / @Model.TotalPages</span>
+
+                <button type="button"
+                        class="btn btn-light btn-sm js-page"
+                        data-page="@(Model.Page + 1)"
+                        disabled="@(!Model.HasNextPage)">
+                    Berikutnya
+                </button>
+            </div>
+        </div>
+    </div>
+}

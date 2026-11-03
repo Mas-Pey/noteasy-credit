@@ -1,0 +1,42 @@
+@model CustomerFormViewModel
+
+<input type="hidden" asp-for="CustomerId" />
+
+<div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+
+<div class="form-grid">
+    <div class="field field--full">
+        <label asp-for="Name" class="form-label"></label>
+        <input asp-for="Name" class="form-control" placeholder="Nama sesuai identitas" autocomplete="name" />
+        <span asp-validation-for="Name" class="field-error"></span>
+    </div>
+
+    <div class="field">
+        <label asp-for="Nik" class="form-label"></label>
+        <input asp-for="Nik" class="form-control mono" placeholder="16-20 digit angka" inputmode="numeric" />
+        <span asp-validation-for="Nik" class="field-error"></span>
+    </div>
+
+    <div class="field">
+        <label asp-for="Phone" class="form-label"></label>
+        <input asp-for="Phone" class="form-control" placeholder="08xxxxxxxxxx" autocomplete="tel" />
+        <span asp-validation-for="Phone" class="field-error"></span>
+    </div>
+
+    <div class="field">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" class="form-control" placeholder="nama@email.test" autocomplete="email" />
+        <span asp-validation-for="Email" class="field-error"></span>
+    </div>
+
+    <div class="field">
+        <label asp-for="Address" class="form-label"></label>
+        <input asp-for="Address" class="form-control" placeholder="Alamat singkat" autocomplete="street-address" />
+        <span asp-validation-for="Address" class="field-error"></span>
+    </div>
+</div>
+
+<p class="form-hint">
+    Validasi berjalan di browser (jQuery Validation Unobtrusive) dan diulang di server
+    melalui <span class="mono">ModelState.IsValid</span>.
+</p>

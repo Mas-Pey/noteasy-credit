@@ -1,0 +1,44 @@
+@model LoginViewModel
+@{
+    ViewData["Title"] = "Masuk";
+}
+
+<div class="auth-card">
+    <div class="auth-brand">
+        <span class="brand-mark">EC</span>
+        <span>
+            <strong>EasyCredit</strong>
+            <small>MVC Frontend</small>
+        </span>
+    </div>
+
+    <h1>Masuk ke EasyCredit</h1>
+    <p class="text-dim">Gunakan akun yang terdaftar di EasyCredit API.</p>
+
+    <form asp-controller="Auth" asp-action="Login" method="post">
+        <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+
+        <div class="field">
+            <label asp-for="Email" class="form-label"></label>
+            <input asp-for="Email" class="form-control" placeholder="admin@mail.com" autocomplete="username" />
+            <span asp-validation-for="Email" class="field-error"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Password" class="form-label"></label>
+            <input asp-for="Password" class="form-control" autocomplete="current-password" />
+            <span asp-validation-for="Password" class="field-error"></span>
+        </div>
+
+        <button type="submit" class="btn btn-accent w-100 mt-2">Masuk</button>
+    </form>
+
+    <div class="auth-demo">
+        <strong>Akun demo</strong><br />
+        <span class="mono">admin@mail.com</span> / <span class="mono">Admin123!</span>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

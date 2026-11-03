@@ -1,0 +1,14 @@
+# Secret lokal — JANGAN pernah di-commit
+appsettings.Local.json
+
+# Build output
+bin/
+obj/
+Logs/
+appsettings.json
+docs/Materi-Dapper-Oracle.md
+docs/Materi-Day6-StoredProcedure.md
+scripts/oracle/day6_reset_application.sql
+scripts/oracle/day6_stored_procedures.sql
+scripts/smoke-test-day6.sh
+scripts/smoke-test.sh

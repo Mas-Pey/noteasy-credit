@@ -1,0 +1,25 @@
+﻿@model ErrorViewModel
+@{
+    ViewData["Title"] = "Terjadi kesalahan";
+}
+
+<div class="panel error-panel">
+    <div class="error-code">@Model.StatusCode</div>
+    <h2>Halaman tidak dapat diproses</h2>
+    <p class="text-dim">
+        @(Model.StatusCode == 404
+            ? "Halaman yang Anda cari tidak ditemukan."
+            : "Terjadi kesalahan saat memproses permintaan. Coba kembali ke dashboard."
+        )
+    </p>
+
+    @if (Model.ShowRequestId)
+    {
+        <p class="mono text-dim small">Request Id: @Model.RequestId</p>
+    }
+
+    <a class="btn btn-accent" asp-controller="Home" asp-action="Index">
+        Kembali ke dashboard
+    </a>
+
+</div>
