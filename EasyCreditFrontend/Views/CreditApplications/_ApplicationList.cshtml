@@ -59,6 +59,23 @@ else
                             </td>
                             <td>
                                 <div class="row-actions justify-content-end">
+                                    @if (ViewBag.IsAdmin == true && item.CanApprove)
+                                    {
+                                        <button type="button"
+                                                class="btn btn-accent btn-sm js-quick-action"
+                                                data-action="Approve"
+                                                data-id="@item.ApplicationId"
+                                                title="Setujui">
+                                            ✓
+                                        </button>
+                                        <button type="button"
+                                                class="btn btn-danger-soft btn-sm js-quick-action"
+                                                data-action="Reject"
+                                                data-id="@item.ApplicationId"
+                                                title="Tolak">
+                                            ✕
+                                        </button>
+                                    }
                                     <a class="btn btn-light btn-sm" asp-action="Detail" asp-route-id="@item.ApplicationId">
                                         Detail
                                     </a>

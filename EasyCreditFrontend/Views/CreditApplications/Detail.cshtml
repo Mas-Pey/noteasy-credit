@@ -26,7 +26,18 @@
         </div>
         <p class="mt-1">Rincian data pengajuan transaksi (Oracle), identitas nasabah (PostgreSQL), dan jadwal cicilan.</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 align-items-center">
+        @if (ViewBag.IsAdmin == true && (Model.Status == "PENDING" || Model.Status == "SUBMITTED"))
+        {
+            <div id="approvalActions" class="d-flex gap-2">
+                <button type="button" class="btn btn-danger-soft js-detail-action" data-action="Reject" data-id="@Model.ApplicationId">
+                    ✕ Tolak (Reject)
+                </button>
+                <button type="button" class="btn btn-accent js-detail-action" data-action="Approve" data-id="@Model.ApplicationId">
+                    ✓ Setujui (Approve)
+                </button>
+            </div>
+        }
         <a class="btn btn-light" asp-action="Index">← Kembali ke Daftar</a>
     </div>
 </div>
@@ -65,11 +76,11 @@
 
                     <dt class="col-sm-5 text-dim">Status Pengajuan</dt>
                     <dd class="col-sm-7">
-                        <span class="badge-status @statusClass">@Model.Status</span>
+                        <span id="detailStatusBadge" class="badge-status @statusClass">@Model.Status</span>
                     </dd>
 
                     <dt class="col-sm-5 text-dim">Disetujui Oleh</dt>
-                    <dd class="col-sm-7 text-dim">
+                    <dd id="detailApprovedBy" class="col-sm-7 text-dim">
                         @(string.IsNullOrWhiteSpace(Model.ApprovedBy) ? "— (Menunggu persetujuan admin)" : Model.ApprovedBy)
                     </dd>
                 </dl>
@@ -192,4 +203,61 @@
         </div>
     }
 </div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        $(function () {
+            var token = $('input[name="__RequestVerificationToken"]').val();
+
+            $('.js-detail-action').on('click', function () {
+                var action = $(this).data('action'); // "Approve" atau "Reject"
+                var appId = $(this).data('id');
+                var label = action === 'Approve' ? 'menyetujui' : 'menolak';
+
+                if (!confirm('Apakah Anda yakin ingin ' + label + ' pengajuan kredit #' + appId + '?')) {
+                    return;
+                }
+
+                var url = action === 'Approve'
+                    ? '@Url.Action("Approve", "CreditApplications")/' + appId
+                    : '@Url.Action("Reject", "CreditApplications")/' + appId;
+
+                var $btn = $(this);
+                $btn.prop('disabled', true);
+
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    headers: {
+                        'RequestVerificationToken': token
+                    },
+                    success: function (res) {
+                        alert(res.message || 'Pengajuan kredit berhasil diproses.');
+                        var newStatus = action === 'Approve' ? 'APPROVED' : 'REJECTED';
+                        var badgeClass = action === 'Approve' ? 'is-approved' : 'is-rejected';
+
+                        // Update DOM real-time
+                        $('#detailStatusBadge, .page-head .badge-status')
+                            .removeClass('is-pending is-approved is-rejected')
+                            .addClass(badgeClass)
+                            .text(newStatus);
+
+                        $('#detailApprovedBy').removeClass('text-dim').addClass('cell-strong').text(res.approver || 'Administrator');
+                        $('#approvalActions').fadeOut();
+                    },
+                    error: function (xhr) {
+                        var msg = (xhr.responseJSON && xhr.responseJSON.message)
+                            ? xhr.responseJSON.message
+                            : 'Gagal memproses pengajuan kredit.';
+                        alert(msg);
+                        // Jika konflik status (400 / 409), reload halaman agar data sinkron
+                        window.location.reload();
+                    }
+                });
+            });
+        });
+    </script>
+}
 

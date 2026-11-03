@@ -112,6 +112,44 @@
                     loadApplications(page);
                 }
             });
+
+            // Quick Approve / Reject dari tabel list
+            $('#applicationList').on('click', '.js-quick-action', function () {
+                var action = $(this).data('action');
+                var appId = $(this).data('id');
+                var label = action === 'Approve' ? 'menyetujui' : 'menolak';
+
+                if (!confirm('Apakah Anda yakin ingin ' + label + ' pengajuan kredit #' + appId + '?')) {
+                    return;
+                }
+
+                var url = action === 'Approve'
+                    ? '@Url.Action("Approve", "CreditApplications")/' + appId
+                    : '@Url.Action("Reject", "CreditApplications")/' + appId;
+
+                var token = $('input[name="__RequestVerificationToken"]').val();
+
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    headers: {
+                        'RequestVerificationToken': token
+                    },
+                    success: function (res) {
+                        alert(res.message || 'Pengajuan kredit berhasil diproses.');
+                        // Muat ulang baris tabel agar data status terupdate
+                        loadApplications(1);
+                    },
+                    error: function (xhr) {
+                        var msg = (xhr.responseJSON && xhr.responseJSON.message)
+                            ? xhr.responseJSON.message
+                            : 'Gagal memproses pengajuan.';
+                        alert(msg);
+                        // Jika konflik status (400/409), reload agar sinkron
+                        loadApplications(1);
+                    }
+                });
+            });
         });
     </script>
 }

@@ -138,6 +138,60 @@ public class CreditApplicationsController : BaseController
         });
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Approve(int id)
+    {
+        if (!IsAdmin)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Hanya akun ADMIN yang berhak menyetujui pengajuan." });
+        }
+
+        var apiResponse = await _apiClient.PutAsync<object>(
+            $"/api/credit-applications/{id}/approve",
+            new { approver = UserName });
+
+        if (apiResponse == null || !apiResponse.Status)
+        {
+            var msg = apiResponse?.Message ?? "Gagal menyetujui pengajuan kredit.";
+            return BadRequest(new { message = msg });
+        }
+
+        return Json(new
+        {
+            status = true,
+            message = apiResponse.Message ?? "Pengajuan kredit berhasil disetujui.",
+            approver = UserName
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Reject(int id)
+    {
+        if (!IsAdmin)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Hanya akun ADMIN yang berhak menolak pengajuan." });
+        }
+
+        var apiResponse = await _apiClient.PutAsync<object>(
+            $"/api/credit-applications/{id}/reject",
+            new { approver = UserName });
+
+        if (apiResponse == null || !apiResponse.Status)
+        {
+            var msg = apiResponse?.Message ?? "Gagal menolak pengajuan kredit.";
+            return BadRequest(new { message = msg });
+        }
+
+        return Json(new
+        {
+            status = true,
+            message = apiResponse.Message ?? "Pengajuan kredit berhasil ditolak.",
+            approver = UserName
+        });
+    }
+
     private async Task<ApplicationIndexViewModel> BuildIndexAsync(string? status, string? keyword, int page, int size)
     {
         var model = new ApplicationIndexViewModel
