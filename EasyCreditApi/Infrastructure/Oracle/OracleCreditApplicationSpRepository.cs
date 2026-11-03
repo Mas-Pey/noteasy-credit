@@ -72,4 +72,69 @@ public sealed class OracleCreditApplicationSpRepository : ICreditApplicationSpRe
 
         return (installments, status, message);
     }
+
+    public async Task<int> CreateWithInstallmentsAsync(
+        int customerId,
+        decimal loanAmount,
+        int tenorMonths,
+        decimal interestRate,
+        int creditScore,
+        IEnumerable<ResInstallmentDto> installments)
+    {
+        await using var conn = _factory.Create();
+        await conn.OpenAsync();
+
+        using var tx = conn.BeginTransaction();
+
+        try
+        {
+            // 1. Insert Header ke TRN_CREDIT_APPLICATION
+            const string insertHeaderSql = $@"
+                INSERT INTO {Schema}.TRN_CREDIT_APPLICATION
+                    (CUSTOMER_ID, LOAN_AMOUNT, TENOR_MONTHS, INTEREST_RATE, CREDIT_SCORE, STATUS, APPLICATION_DATE)
+                VALUES
+                    (:CustomerId, :LoanAmount, :TenorMonths, :InterestRate, :CreditScore, 'PENDING', SYSDATE)
+                RETURNING APPLICATION_ID INTO :NewApplicationId";
+
+            var headerParams = new DynamicParameters();
+            headerParams.Add("CustomerId", customerId, DbType.Int32);
+            headerParams.Add("LoanAmount", loanAmount, DbType.Decimal);
+            headerParams.Add("TenorMonths", tenorMonths, DbType.Int32);
+            headerParams.Add("InterestRate", interestRate, DbType.Decimal);
+            headerParams.Add("CreditScore", creditScore, DbType.Int32);
+            headerParams.Add("NewApplicationId", dbType: DbType.Int32, direction: ParameterDirection.Output);
+
+            await conn.ExecuteAsync(insertHeaderSql, headerParams, tx);
+            var applicationId = headerParams.Get<int>("NewApplicationId");
+
+            // 2. Insert seluruh baris cicilan ke TRN_CREDIT_INSTALLMENT
+            const string insertInstallmentSql = $@"
+                INSERT INTO {Schema}.TRN_CREDIT_INSTALLMENT
+                    (APPLICATION_ID, INSTALLMENT_NO, DUE_DATE, INSTALLMENT_AMOUNT, STATUS)
+                VALUES
+                    (:ApplicationId, :InstallmentNo, :DueDate, :InstallmentAmount, :Status)";
+
+            foreach (var inst in installments)
+            {
+                var instParams = new DynamicParameters();
+                instParams.Add("ApplicationId", applicationId, DbType.Int32);
+                instParams.Add("InstallmentNo", inst.InstallmentNo, DbType.Int32);
+                instParams.Add("DueDate", inst.DueDate, DbType.Date);
+                instParams.Add("InstallmentAmount", inst.InstallmentAmount, DbType.Decimal);
+                instParams.Add("Status", inst.Status ?? "UNPAID", DbType.String);
+
+                await conn.ExecuteAsync(insertInstallmentSql, instParams, tx);
+            }
+
+            // 3. Commit transaksi jika semua baris cicilan berhasil tersimpan
+            tx.Commit();
+            return applicationId;
+        }
+        catch
+        {
+            // Rollback jika ada satu saja cicilan yang gagal, agar tidak ada data sampah di TRN
+            tx.Rollback();
+            throw;
+        }
+    }
 }

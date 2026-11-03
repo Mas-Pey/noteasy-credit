@@ -8,4 +8,11 @@ public interface ICreditApplicationSpRepository
     Task<IEnumerable<CreditApplication>> GetAllAsync();
     Task<(string Status, string Message)> ApproveAsync(int applicationId, string approver);
     Task<(IEnumerable<ResInstallmentDto> Installments, string Status, string Message)> CalculateInstallmentAsync(decimal loanAmount, int tenorMonths);
+    Task<int> CreateWithInstallmentsAsync(
+        int customerId,
+        decimal loanAmount,
+        int tenorMonths,
+        decimal interestRate,
+        int creditScore,
+        IEnumerable<ResInstallmentDto> installments);
 }

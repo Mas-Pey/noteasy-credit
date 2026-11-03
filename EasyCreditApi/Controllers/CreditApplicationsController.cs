@@ -31,6 +31,16 @@ public class CreditApplicationsController : ControllerBase
             "Simulasi cicilan berhasil dihitung."));
     }
 
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] ReqCreateApplicationDto dto)
+    {
+        var result = await _service.CreateAsync(dto);
+
+        return StatusCode(StatusCodes.Status201Created, ApiResponse<ResCreateApplicationDto>.Success(
+            result,
+            "Pengajuan kredit berhasil dibuat dan disimpan."));
+    }
+
     [HttpPost("{id:int}/approve")]
     [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> Approve(int id, [FromBody] ReqApproveApplicationDto dto)

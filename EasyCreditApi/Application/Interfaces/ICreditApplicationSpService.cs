@@ -8,4 +8,5 @@ public interface ICreditApplicationSpService
     Task<IReadOnlyList<CreditApplication>> GetAllAsync();
     Task<string> ApproveAsync(int applicationId, string approver);
     Task<IReadOnlyList<ResInstallmentDto>> CalculateInstallmentAsync(ReqPreviewInstallmentDto dto);
+    Task<ResCreateApplicationDto> CreateAsync(ReqCreateApplicationDto dto);
 }

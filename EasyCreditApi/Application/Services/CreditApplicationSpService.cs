@@ -9,10 +9,19 @@ namespace EasyCreditApi.Application.Services;
 public sealed class CreditApplicationSpService : ICreditApplicationSpService
 {
     private static readonly int[] ValidTenors = [6, 12, 24, 36];
-    private readonly ICreditApplicationSpRepository _repository;
+    private const decimal DefaultInterestRate = 0.01m; // 1% per bulan
+    private const int DefaultCreditScore = 700; // Skor internal default sesuai soal
 
-    public CreditApplicationSpService(ICreditApplicationSpRepository repository)
-        => _repository = repository;
+    private readonly ICreditApplicationSpRepository _repository;
+    private readonly ICustomerRepository _customerRepository;
+
+    public CreditApplicationSpService(
+        ICreditApplicationSpRepository repository,
+        ICustomerRepository customerRepository)
+    {
+        _repository = repository;
+        _customerRepository = customerRepository;
+    }
 
     public async Task<IReadOnlyList<CreditApplication>> GetAllAsync()
     {
@@ -35,17 +44,7 @@ public sealed class CreditApplicationSpService : ICreditApplicationSpService
 
     public async Task<IReadOnlyList<ResInstallmentDto>> CalculateInstallmentAsync(ReqPreviewInstallmentDto dto)
     {
-        if (dto.LoanAmount < 1_000_000 || dto.LoanAmount > 50_000_000)
-        {
-            throw new ExceptionMiddleware.ValidationException(
-                "Nominal pinjaman harus antara Rp 1.000.000 s/d Rp 50.000.000.");
-        }
-
-        if (!ValidTenors.Contains(dto.TenorMonths))
-        {
-            throw new ExceptionMiddleware.ValidationException(
-                "Tenor tidak valid. Pilihan tenor yang diperbolehkan: 6, 12, 24, atau 36 bulan.");
-        }
+        ValidateLoanAndTenor(dto.LoanAmount, dto.TenorMonths);
 
         var (installments, status, message) = await _repository.CalculateInstallmentAsync(
             dto.LoanAmount,
@@ -57,5 +56,66 @@ public sealed class CreditApplicationSpService : ICreditApplicationSpService
             "INVALID_AMOUNT" or "INVALID_TENOR" => throw new ExceptionMiddleware.ValidationException(message),
             _ => throw new InvalidOperationException(message)
         };
+    }
+
+    public async Task<ResCreateApplicationDto> CreateAsync(ReqCreateApplicationDto dto)
+    {
+        // Validasi LoanAmount dan TenorMonths
+        ValidateLoanAndTenor(dto.LoanAmount, dto.TenorMonths);
+
+        // Validasi Customer (PostgreSQL)
+        var customerExists = await _customerRepository.ExistsAsync(dto.CustomerId);
+        if (!customerExists)
+        {
+            throw new ExceptionMiddleware.ValidationException($"Customer dengan ID {dto.CustomerId} tidak ditemukan.");
+        }
+
+        var (installments, status, message) = await _repository.CalculateInstallmentAsync(
+            dto.LoanAmount,
+            dto.TenorMonths);
+
+        if (status != "SUCCESS")
+        {
+            throw new ExceptionMiddleware.ValidationException(message);
+        }
+
+        var installmentList = installments.ToList();
+
+        // TRN_CREDIT_APPLICATION + TRN_CREDIT_INSTALLMENT
+        var newApplicationId = await _repository.CreateWithInstallmentsAsync(
+            dto.CustomerId,
+            dto.LoanAmount,
+            dto.TenorMonths,
+            DefaultInterestRate,
+            DefaultCreditScore,
+            installmentList);
+
+        return new ResCreateApplicationDto
+        {
+            ApplicationId = newApplicationId,
+            CustomerId = dto.CustomerId,
+            LoanAmount = dto.LoanAmount,
+            TenorMonths = dto.TenorMonths,
+            InterestRate = DefaultInterestRate,
+            CreditScore = DefaultCreditScore,
+            Status = "PENDING",
+            ApplicationDate = DateTime.Now,
+            TotalInstallments = installmentList.Count
+        };
+    }
+
+    private static void ValidateLoanAndTenor(decimal loanAmount, int tenorMonths)
+    {
+        if (loanAmount < 1_000_000 || loanAmount > 50_000_000)
+        {
+            throw new ExceptionMiddleware.ValidationException(
+                "Nominal pinjaman harus antara Rp 1.000.000 s/d Rp 50.000.000.");
+        }
+
+        if (!ValidTenors.Contains(tenorMonths))
+        {
+            throw new ExceptionMiddleware.ValidationException(
+                "Tenor tidak valid. Pilihan tenor yang diperbolehkan: 6, 12, 24, atau 36 bulan.");
+        }
     }
 }
