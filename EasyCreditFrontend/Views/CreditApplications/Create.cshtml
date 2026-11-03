@@ -1,0 +1,218 @@
+@model CreateApplicationViewModel
+@{
+    ViewData["Title"] = "Buat Pengajuan Kredit";
+}
+
+<div class="page-head">
+    <div>
+        <div class="crumbs">
+            <a asp-controller="Home" asp-action="Index">Dashboard</a>
+            <span>/</span>
+            <span>Pengajuan</span>
+            <span>/</span>
+            <span>Baru</span>
+        </div>
+        <h2>Pengajuan Kredit Baru</h2>
+        <p>Pilih nasabah, masukkan nominal pinjaman dan tenor, lalu hitung simulasi cicilan sebelum diajukan.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Form Input Pengajuan -->
+    <div class="col-lg-5">
+        <div class="panel form-panel" style="max-width: 100%;">
+            <form id="formApplication" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="field mb-3">
+                    <label asp-for="CustomerId" class="form-label"></label>
+                    <select asp-for="CustomerId" asp-items="Model.CustomerOptions" class="form-select">
+                        <option value="">-- Pilih Nasabah (dari Master Postgres) --</option>
+                    </select>
+                    <span asp-validation-for="CustomerId" class="field-error"></span>
+                </div>
+
+                <div class="field mb-3">
+                    <label asp-for="LoanAmount" class="form-label"></label>
+                    <input asp-for="LoanAmount" type="number" step="100000" class="form-control mono"
+                           placeholder="Contoh: 10000000" />
+                    <span class="text-dim" style="font-size: 11.5px;">Batas pinjaman: Rp 1.000.000 s/d Rp 50.000.000</span>
+                    <span asp-validation-for="LoanAmount" class="field-error"></span>
+                </div>
+
+                <div class="field mb-4">
+                    <label asp-for="TenorMonths" class="form-label"></label>
+                    <select asp-for="TenorMonths" asp-items="Model.TenorOptions" class="form-select">
+                        <option value="">-- Pilih Tenor --</option>
+                    </select>
+                    <span asp-validation-for="TenorMonths" class="field-error"></span>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="button" id="btnCalculate" class="btn btn-outline-primary w-100">
+                        <span class="spinner-border spinner-border-sm d-none" id="calcSpinner"></span>
+                        Hitung Simulasi
+                    </button>
+                    <button type="button" id="btnSubmit" class="btn btn-accent w-100" disabled>
+                        Ajukan Kredit
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Panel Tabel Preview Cicilan -->
+    <div class="col-lg-7">
+        <div class="panel h-100 d-flex flex-column">
+            <div class="panel-head">
+                <div>
+                    <h3>Simulasi Jadwal Cicilan (Preview)</h3>
+                    <p>Skema angsuran per bulan yang dihitung oleh Stored Procedure Oracle.</p>
+                </div>
+                <div>
+                    <span id="installmentBadge" class="badge-status is-pending">Belum Dihitung</span>
+                </div>
+            </div>
+
+            <div id="previewPlaceholder" class="p-5 text-center my-auto">
+                <div style="font-size: 2.2rem; margin-bottom: 8px; opacity: 0.6;">▤</div>
+                <div class="cell-strong mb-1">Simulasi Belum Dijalankan</div>
+                <p class="text-dim mb-0" style="font-size: 13px;">
+                    Silakan isi nominal pinjaman & tenor di sebelah kiri, lalu klik <strong>Hitung Simulasi</strong>.
+                </p>
+                <small class="text-dim" style="font-size: 11.5px;">*Perhitungan tidak akan menyimpan data ke database.</small>
+            </div>
+
+            <div id="previewTableContainer" class="table-wrap d-none flex-grow-1">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%">Ke-</th>
+                            <th style="width: 35%">Jatuh Tempo</th>
+                            <th style="width: 30%">Jumlah Angsuran</th>
+                            <th style="width: 20%">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="installmentTableBody">
+                        <!-- Baris tabel di-generate via JavaScript jQuery AJAX -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="previewSummaryFoot" class="panel-foot d-none">
+                <span class="text-dim">Bunga flat: <strong>1% / bulan</strong></span>
+                <span id="previewTotalNote" class="cell-strong"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            const $btnCalculate = $('#btnCalculate');
+            const $calcSpinner = $('#calcSpinner');
+            const $btnSubmit = $('#btnSubmit');
+            const $placeholder = $('#previewPlaceholder');
+            const $tableContainer = $('#previewTableContainer');
+            const $tableBody = $('#installmentTableBody');
+            const $badge = $('#installmentBadge');
+            const $summaryFoot = $('#previewSummaryFoot');
+            const $totalNote = $('#previewTotalNote');
+
+            $btnCalculate.on('click', function () {
+                const loanAmount = parseFloat($('#LoanAmount').val());
+                const tenorMonths = parseInt($('#TenorMonths').val());
+
+                if (!loanAmount || loanAmount < 1000000 || loanAmount > 50000000) {
+                    alert('Nominal pinjaman harus antara Rp 1.000.000 s/d Rp 50.000.000');
+                    return;
+                }
+
+                if (!tenorMonths) {
+                    alert('Silakan pilih tenor pinjaman.');
+                    return;
+                }
+
+                // Loading state
+                $btnCalculate.prop('disabled', true);
+                $calcSpinner.removeClass('d-none');
+
+                const token = $('input[name="__RequestVerificationToken"]').val();
+
+                $.ajax({
+                    url: '@Url.Action("Preview", "CreditApplications")',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    headers: {
+                        'RequestVerificationToken': token
+                    },
+                    data: JSON.stringify({
+                        loanAmount: loanAmount,
+                        tenorMonths: tenorMonths
+                    }),
+                    success: function (response) {
+                        $tableBody.empty();
+
+                        if (response && response.status && response.data) {
+                            let totalBayar = 0;
+
+                            response.data.forEach(function (item) {
+                                totalBayar += item.installmentAmount;
+
+                                const dueDate = new Date(item.dueDate).toLocaleDateString('id-ID', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric'
+                                });
+                                const amount = new Intl.NumberFormat('id-ID', {
+                                    style: 'currency',
+                                    currency: 'IDR',
+                                    maximumFractionDigits: 0
+                                }).format(item.installmentAmount);
+
+                                const row = `<tr>
+                                    <td class="cell-strong">${item.installmentNo}</td>
+                                    <td>${dueDate}</td>
+                                    <td class="mono cell-strong">${amount}</td>
+                                    <td><span class="badge-status is-pending">${item.status}</span></td>
+                                </tr>`;
+                                $tableBody.append(row);
+                            });
+
+                            const formattedTotal = new Intl.NumberFormat('id-ID', {
+                                style: 'currency',
+                                currency: 'IDR',
+                                maximumFractionDigits: 0
+                            }).format(totalBayar);
+
+                            $totalNote.text('Estimasi Total: ' + formattedTotal);
+
+                            $placeholder.addClass('d-none');
+                            $tableContainer.removeClass('d-none');
+                            $summaryFoot.removeClass('d-none');
+
+                            // Update badge gaya tema
+                            $badge.removeClass('is-pending is-rejected')
+                                  .addClass('is-approved')
+                                  .text(tenorMonths + ' Bulan (' + response.data.length + 'x Cicilan)');
+
+                            $btnSubmit.prop('disabled', false); // Aktifkan tombol submit
+                        }
+                    },
+                    error: function (xhr) {
+                        const errMsg = (xhr.responseJSON && xhr.responseJSON.message)
+                            ? xhr.responseJSON.message
+                            : 'Gagal melakukan perhitungan cicilan.';
+                        alert(errMsg);
+                    },
+                    complete: function () {
+                        $btnCalculate.prop('disabled', false);
+                        $calcSpinner.addClass('d-none');
+                    }
+                });
+            });
+        });
+    </script>
+}
