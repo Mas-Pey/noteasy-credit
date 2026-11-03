@@ -1,6 +1,7 @@
 using System.Data;
 using Dapper;
 using Dapper.Oracle;
+using EasyCreditApi.Application.DTO.Credit;
 using EasyCreditApi.Domain.Entities;
 using EasyCreditApi.Infrastructure.Oracle;
 
@@ -38,7 +39,7 @@ public sealed class OracleCreditApplicationSpRepository : ICreditApplicationSpRe
         p.Add("out_mess", dbType: OracleMappingType.Varchar2, direction: ParameterDirection.Output, size: 500);
 
         await conn.ExecuteAsync(
-            $"{Schema}.sp_approve_application_v2",
+            $"{Schema}.sp_approve_application",
             p,
             commandType: CommandType.StoredProcedure);
 
@@ -46,5 +47,29 @@ public sealed class OracleCreditApplicationSpRepository : ICreditApplicationSpRe
         var message = p.Get<string>("out_mess") ?? string.Empty;
 
         return (status, message);
+    }
+
+    public async Task<(IEnumerable<ResInstallmentDto> Installments, string Status, string Message)> CalculateInstallmentAsync(
+        decimal loanAmount,
+        int tenorMonths)
+    {
+        await using var conn = _factory.Create();
+
+        var p = new OracleDynamicParameters();
+        p.Add("p_loan_amount", loanAmount, OracleMappingType.Decimal, ParameterDirection.Input);
+        p.Add("p_tenor_months", tenorMonths, OracleMappingType.Int32, ParameterDirection.Input);
+        p.Add("p_cursor", dbType: OracleMappingType.RefCursor, direction: ParameterDirection.Output);
+        p.Add("out_stat", dbType: OracleMappingType.Varchar2, direction: ParameterDirection.Output, size: 50);
+        p.Add("out_mess", dbType: OracleMappingType.Varchar2, direction: ParameterDirection.Output, size: 500);
+
+        var installments = await conn.QueryAsync<ResInstallmentDto>(
+            $"{Schema}.sp_calculate_installment",
+            p,
+            commandType: CommandType.StoredProcedure);
+
+        var status = p.Get<string>("out_stat") ?? "ERROR";
+        var message = p.Get<string>("out_mess") ?? string.Empty;
+
+        return (installments, status, message);
     }
 }

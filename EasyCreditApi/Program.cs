@@ -45,7 +45,7 @@ if (string.IsNullOrWhiteSpace(jwtSettings.Key))
     if (!builder.Environment.IsDevelopment())
         throw new InvalidOperationException("Konfigurasi 'Jwt:Key' wajib diisi.");
 
-    jwtSettings.Key = "asdadasddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
+    jwtSettings.Key = "JwtKunciRahasia2026HarishGanteng";
     builder.Configuration["Jwt:Key"] = jwtSettings.Key;
 }
 

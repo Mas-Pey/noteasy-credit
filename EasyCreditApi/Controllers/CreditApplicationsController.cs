@@ -22,7 +22,17 @@ public class CreditApplicationsController : ControllerBase
         return Ok(ApiResponse<object>.Success(new { total = items.Count, items }));
     }
 
+    [HttpPost("preview-installment")]
+    public async Task<IActionResult> PreviewInstallment([FromBody] ReqPreviewInstallmentDto dto)
+    {
+        var installments = await _service.CalculateInstallmentAsync(dto);
+        return Ok(ApiResponse<IReadOnlyList<ResInstallmentDto>>.Success(
+            installments,
+            "Simulasi cicilan berhasil dihitung."));
+    }
+
     [HttpPost("{id:int}/approve")]
+    [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> Approve(int id, [FromBody] ReqApproveApplicationDto dto)
     {
         var message = await _service.ApproveAsync(id, dto.Approver);
