@@ -102,8 +102,8 @@ public sealed class CreditApplicationSpService : ICreditApplicationSpService
             throw new ExceptionMiddleware.NotFoundException($"Pengajuan kredit dengan ID {applicationId} tidak ditemukan.");
         }
 
-        // 2. Lookup data nasabah dari PostgreSQL
-        var customer = await _customerRepository.GetByIdAsync(app.CustomerId);
+        // 2. Lookup data nasabah dari PostgreSQL (termasuk yang berstatus soft-deleted untuk arsip histori transaksi)
+        var customer = await _customerRepository.GetByIdAsync(app.CustomerId, includeDeleted: true);
         ResCustomerDto? customerDto = customer is null ? null : new ResCustomerDto
         {
             CustomerId = customer.CustomerId,
@@ -111,7 +111,8 @@ public sealed class CreditApplicationSpService : ICreditApplicationSpService
             Nik = customer.Nik,
             Phone = customer.Phone,
             Email = customer.Email,
-            Address = customer.Address
+            Address = customer.Address,
+            IsDeleted = customer.IsDeleted
         };
 
         // 3. Ambil seluruh jadwal cicilan dari Oracle

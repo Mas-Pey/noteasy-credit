@@ -81,7 +81,7 @@ public sealed class OracleCustomerRepository : ICustomerRepository
         return (items, total);
     }
 
-    public async Task<Customer?> GetByIdAsync(int customerId)
+    public async Task<Customer?> GetByIdAsync(int customerId, bool includeDeleted = false)
     {
         await using var conn = _factory.Create();
 

@@ -6,7 +6,7 @@ public interface ICustomerRepository
 {
     Task<IEnumerable<Customer>> GetAllAsync(string? keyword);
     Task<(IEnumerable<Customer> Items, int Total)> GetPagedAsync(string? keyword, int page, int limit);
-    Task<Customer?> GetByIdAsync(int customerId);
+    Task<Customer?> GetByIdAsync(int customerId, bool includeDeleted = false);
     Task<IEnumerable<Customer>> GetByIdsAsync(IEnumerable<int> customerIds);
     Task<bool> ExistsAsync(int customerId);
     Task<bool> NikExistsAsync(string nik, int? excludeCustomerId = null);

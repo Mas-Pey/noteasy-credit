@@ -31,7 +31,7 @@ public class EfCustomerRepository : ICustomerRepository
             return false;
         }
 
-        _dbContext.Customers.Remove(existing);
+        existing.IsDeleted = true;
         return await _dbContext.SaveChangesAsync() > 0;
     }
 
@@ -42,9 +42,16 @@ public class EfCustomerRepository : ICustomerRepository
         .OrderBy(customer => customer.CustomerId)
         .ToListAsync();
 
-    public async Task<Customer?> GetByIdAsync(int customerId) => await _dbContext.Customers
-        .AsNoTracking()
-        .FirstOrDefaultAsync(customer => customer.CustomerId == customerId);
+    public async Task<Customer?> GetByIdAsync(int customerId, bool includeDeleted = false)
+    {
+        var query = _dbContext.Customers.AsNoTracking();
+        if (includeDeleted)
+        {
+            query = query.IgnoreQueryFilters();
+        }
+
+        return await query.FirstOrDefaultAsync(customer => customer.CustomerId == customerId);
+    }
 
     public async Task<IEnumerable<Customer>> GetByIdsAsync(IEnumerable<int> customerIds)
     {
@@ -56,6 +63,7 @@ public class EfCustomerRepository : ICustomerRepository
         }
 
         return await _dbContext.Customers
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(customer => ids.Contains(customer.CustomerId))
             .ToListAsync();

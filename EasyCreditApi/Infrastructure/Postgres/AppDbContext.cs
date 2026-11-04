@@ -38,6 +38,8 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Email).HasColumnName("email").HasMaxLength(100);
             entity.Property(e => e.Address).HasColumnName("address").HasMaxLength(255);
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted").HasDefaultValue(false);
+            entity.HasQueryFilter(e => !e.IsDeleted);
             entity.HasIndex(e => e.Nik).IsUnique();
         });
     }

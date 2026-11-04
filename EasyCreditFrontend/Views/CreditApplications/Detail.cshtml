@@ -103,10 +103,19 @@
                 </div>
                 @if (Model.Customer != null)
                 {
-                    <span class="status-pill">
-                        <span class="status-dot"></span>
-                        Terverifikasi
-                    </span>
+                    if (Model.Customer.IsDeleted)
+                    {
+                        <span class="badge-status is-rejected">
+                            Nasabah Non-Aktif
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="status-pill">
+                            <span class="status-dot"></span>
+                            Terverifikasi
+                        </span>
+                    }
                 }
             </div>
             <div class="p-4">

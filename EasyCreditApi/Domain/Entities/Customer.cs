@@ -10,4 +10,5 @@ public class Customer
     public string? Address { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsDeleted { get; set; } = false;
 }
