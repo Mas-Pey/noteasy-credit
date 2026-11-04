@@ -1,0 +1,105 @@
+services:
+  # =======================================================
+  # 1. Database PostgreSQL 17 (Port: 5432)
+  # Master Nasabah (mst_customer) & Otentikasi (mst_user)
+  # =======================================================
+  db-postgres:
+    image: postgres:17
+    container_name: postgres-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: peygres
+      POSTGRES_DB: mydb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mydb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - easycredit-network
+
+  # =======================================================
+  # 2. Database Oracle 11g Express Edition Release 11.2.0.2.0
+  # Transaksi Kredit & Jadwal Angsuran (Port Host: 1522)
+  # =======================================================
+  db-oracle:
+    image: gvenzl/oracle-xe:11-slim
+    container_name: easycredit-oracle
+    restart: unless-stopped
+    environment:
+      ORACLE_PASSWORD: peynet
+      ORACLE_DATABASE: XE
+      APP_USER: pey_net
+      APP_USER_PASSWORD: peynet
+    ports:
+      # Port host 1522 sesuai dengan connection string di appsettings.json
+      - "1522:1521"
+    volumes:
+      - oracle_data:/opt/oracle/oradata
+      - ./init-scripts/oracle:/container-entrypoint-initdb.d:ro
+    networks:
+      - easycredit-network
+
+  # =======================================================
+  # 3. Backend Web API (Port: 5052)
+  # =======================================================
+  backend-api:
+    build:
+      context: .
+      dockerfile: EasyCreditApi/Dockerfile
+    container_name: easycredit-api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5052
+      ConnectionStrings__Postgres: Host=db-postgres;Port=5432;Database=easycredit;Username=easycredit_user;Password=easycredit_pass
+      ConnectionStrings__Oracle: User Id=pey_net;Password=peynet;Data Source=db-oracle:1521/XE
+      ApiKey: sk_harish_ganteng
+      Jwt__Key: JwtKunciRahasia2026HarishGanteng
+      Jwt__Issuer: EasyCredit.Api
+      Jwt__Audience: EasyCredit.Client
+      Jwt__ExpiryMinutes: 60
+    ports:
+      - "5052:5052"
+    depends_on:
+      db-postgres:
+        condition: service_healthy
+      db-oracle:
+        condition: service_started
+    networks:
+      - easycredit-network
+
+  # =======================================================
+  # 4. Frontend MVC (Port: 5019)
+  # =======================================================
+  frontend-mvc:
+    build:
+      context: .
+      dockerfile: EasyCreditFrontend/Dockerfile
+    container_name: easycredit-frontend
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5019
+      ApiSettings__BaseUrl: http://backend-api:5052
+      ApiSettings__ApiKey: sk_harish_ganteng
+    ports:
+      - "5019:5019"
+    depends_on:
+      - backend-api
+    networks:
+      - easycredit-network
+
+networks:
+  easycredit-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  oracle_data:

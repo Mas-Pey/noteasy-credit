@@ -36,7 +36,62 @@ Sesuaikan connection string di `EasyCreditApi/appsettings.json` (kredensial disa
 
 ---
 
-## 3. Stored Procedures (Oracle Schema `PEY_NET`)
+## 3. Setup PostgreSQL (Docker / WSL)
+
+Flow pembuatan database dan skema di PostgreSQL:
+
+```sql
+-- 1. Buat Role & Database
+CREATE ROLE easycredit_user LOGIN PASSWORD 'easycredit_pass';
+CREATE DATABASE easycredit OWNER easycredit_user;
+GRANT ALL PRIVILEGES ON DATABASE easycredit TO easycredit_user;
+
+\connect easycredit
+
+-- 2. Buat Tabel mst_user & mst_customer (Skema Awal)
+CREATE TABLE mst_user (
+    user_id       SERIAL       PRIMARY KEY,
+    name          VARCHAR(100) NOT NULL,
+    email         VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role          VARCHAR(20)  NOT NULL,
+    created_at    TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE mst_customer (
+    customer_id SERIAL       PRIMARY KEY,
+    name        VARCHAR(100) NOT NULL,
+    nik         VARCHAR(20)  NOT NULL UNIQUE,
+    phone       VARCHAR(20),
+    email       VARCHAR(100),
+    address     VARCHAR(255),
+    created_at  TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+-- 3. Seed Data Pengguna & Nasabah
+INSERT INTO mst_user (name, email, password_hash, role) VALUES
+    ('Administrator', 'admin@easycredit.test',
+     '$2a$11$ACDxIbAkUhjG6e8vBa5PjOdXir3PmYFnj4REMxw63r7jdCiok7l2m', 'ADMIN'),
+    ('Staff CS', 'staff@easycredit.test',
+     '$2a$11$r7blHbOXR8wjFYaMor0vp.P.nRzMQg870/q1lGH05razxT.1Mahmm', 'STAFF');
+
+INSERT INTO mst_customer (name, nik, phone, email, address) VALUES
+    ('Budi Santoso', '3201010101010001', '081234567001', 'budi@mail.test', 'Jl. Merdeka No. 1, Jakarta'),
+    ('Siti Aminah',  '3201010101010002', '081234567002', 'siti@mail.test', 'Jl. Sudirman No. 2, Bandung'),
+    ('Andi Wijaya',  '3201010101010003', '081234567003', 'andi@mail.test', 'Jl. Diponegoro No. 3, Surabaya');
+
+GRANT ALL PRIVILEGES ON ALL TABLES    IN SCHEMA public TO easycredit_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO easycredit_user;
+
+-- 4. Migrasi Soft Delete (+ 1 Column)
+-- Ditambahkan setelah fitur soft delete diimplementasikan pada entitas Customer
+ALTER TABLE mst_customer 
+ADD COLUMN is_deleted BOOLEAN NOT NULL DEFAULT FALSE;
+```
+
+---
+
+## 4. Stored Procedures (Oracle Schema `PEY_NET`)
 
 Jalankan seluruh Stored Procedure berikut di Oracle:
 
@@ -288,8 +343,15 @@ END sp_create_customer;
 
 ---
 
-## 4. Cara Menjalankan Aplikasi
+## 5. Cara Menjalankan Aplikasi
 
+### Opsi A: Menggunakan Docker Compose (Satu Perintah untuk Semua)
+```bash
+docker compose up -d
+```
+Semua 4 service (PostgreSQL, Oracle 11g XE, Backend API, Frontend MVC) beserta inisialisasi schema & stored procedure otomatis berjalan.
+
+### Opsi B: Menjalankan Secara Manual (Lokal)
 Jalankan perintah berikut di dua terminal terpisah:
 
 ```bash
